@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<link id="styleColors" rel="Stylesheet" href="styleLight.css" />
+<link rel="Stylesheet" href="style.css" />
+<link href='http://fonts.googleapis.com/css?family=Josefin+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Oswald' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Source+Sans+Pro' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Sanchez' rel='stylesheet' type='text/css'>
+<script src="//code.jquery.com/jquery-1.10.2.js"></script>
+<script src="//code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+
+<body>
+<div id="styleToggle" class="infoNormal"><a href="javascript:void(0)" onclick="toggleStyle()">Change the mood.</a></div>
+<script src="d3.v3.min.js"></script>
+<script>
+
+    var styleSheet = document.getElementById("styleColors");
+    var width = $(window).width();
+    var height = $(window).height();
+    var maxRadius = 50;
+    var maxSpread = 800;
+    var color = d3.scale.category20();
+    var numberFormat = d3.format("0,f0");
+    var scaleLevel;
+    var variabilityScale = 0;
+
+    function toggleStyle() {
+        styleSheet = document.getElementById("styleColors");
+        if (styleSheet.href.match("styleDark.css")) {
+            styleSheet.href = "styleLight.css"
+        }
+        else {
+            styleSheet.href = "styleDark.css"
+        }
+    }
+
+    var svg = d3.select("body").append("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .attr("pointer-events", "all")
+            .append('svg:g')
+            .call(d3.behavior.zoom().on("zoom", redraw))
+            .append('svg:g');
+
+    function redraw() {
+        scaleLevel = d3.event.scale;
+        svg.attr("transform",
+                "translate(" + d3.event.translate + ")"
+                +
+                        " scale(" + d3.event.scale + ")");
+        showHideText();
+    }
+
+    function showHideText() {
+        if(scaleLevel > 4) {
+            svg.selectAll("text")
+                    .style("visibility", "visible");
+        }
+        if(scaleLevel <= 4) {
+            svg.selectAll("text")
+                    .style("visibility", "hidden");
+        }
+    }
+
+    d3.json("specialtyv6.json", function(error, graph) {
+        var nodeFiltered = graph.nodes;
+        var linkFiltered = graph.links;
+        var linkStructured = [];
+//        nodeFiltered = nodeFiltered.filter(function(d){return d.nodeType !=  "Detail";});
+
+        var costScale = d3.scale.linear();
+        var likelihoodPresentationScale = d3.scale.quantize()
+                .range(["High", "Moderate", "Low", "Very Low", "Miniscule" ]);
+        var likelihoodScale = d3.scale.linear()
+                .range([0, maxSpread]);
+        var force = d3.layout.force()
+                .charge(-120)
+                .size([width, height])
+                .linkDistance(function(d) {
+                    var scalar = 0;
+                    if(d.targetNodeType == "Summary") {scalar = 1} else {scalar = .1}
+                    return likelihoodScale(Math.log(1/d.value))*scalar;
+                })
+                .friction(0.8);
+
+        initialize();
+
+        function getLinks() {
+            linkStructured = [];
+            for(var i=0; i < linkFiltered.length; i++) {
+                var linkStructuredRecord = new Object();
+                linkStructuredRecord["value"] = linkFiltered[i].likelihood;
+                linkStructuredRecord["targetNodeType"] = linkFiltered[i].targetNodeType;
+                for(var j=0; j < nodeFiltered.length; j++) {
+                    if(nodeFiltered[j].Node == linkFiltered[i].source
+                            && ( nodeFiltered[j].Specialty == linkFiltered[i].Specialty
+                                || nodeFiltered[j].Specialty == "You" ))
+                    {
+                        linkStructuredRecord["source"] = j;
+                    }
+                }
+                for(var k=0; k < nodeFiltered.length; k++) {
+                    if(nodeFiltered[k].Node == linkFiltered[i].target && nodeFiltered[k].Specialty == linkFiltered[i].Specialty) {
+                        linkStructuredRecord["target"] = k;
+                    }
+                }
+                if (linkStructuredRecord["source"] !== undefined && linkStructuredRecord["target"] !== undefined)
+                {
+                    linkStructured.push(linkStructuredRecord);
+                }
+            }
+            startForce();
+        }
+
+        function startForce() {
+            var link = svg.selectAll(".link")
+                    .data(linkStructured)
+                    .enter().append("line")
+                    .attr("class", "link")
+                    .style("stroke-width", 0.25);
+            var gnodes = svg.selectAll("g.gnode")
+                    .data(nodeFiltered)
+                    .enter()
+                    .append('g')
+                    .classed('gnode', true);
+
+//            var nodeInner = gnodes
+//                    .append("circle")
+//                    .attr("class", "node")
+//                    .attr("r", function(d) { return Math.sqrt(costScale(d.inwardVariability *(1-variabilityScale))/Math.PI)})
+//                    .style("fill", function(d) {
+//                        if(d.Node == "You"){
+//                            if (styleSheet.href.match("styleLight.css")) {return "Black"}
+//                            else {return "White"}
+//                        }
+//                        else{
+//                            return color(d.Specialty);
+//                        }
+//                    });
+//
+//            var nodeOuter = gnodes
+//                    .append("circle")
+//                    .attr("class", "node")
+//                    .attr("r", function(d) { return Math.sqrt(costScale(d.outwardVariability *(1+variabilityScale))/Math.PI)})
+//                    .style("fill", function(d) {
+//                        if(d.Node == "You"){
+//                            if (styleSheet.href.match("styleLight.css")) {return "Black"}
+//                            else {return "White"}
+//                        }
+//                        else{
+//                            return color(d.Specialty);
+//                        }
+//                    });
+
+            var node = gnodes
+                    .append("circle")
+                    .attr("class", "node")
+                    .attr("r", function(d) { return Math.sqrt(costScale(d.averageCost)/Math.PI)})
+                    .style("fill", function(d) {
+                        if(d.Node == "You"){
+                            if (styleSheet.href.match("styleLight.css")) {return "Black"}
+                            else {return "White"}
+                        }
+                        else{
+                            return color(d.Specialty);
+                        }
+                    })
+                    .on("mouseover", function(d){
+                        var content  = [
+                            ["infoHeader", d.Specialty],
+                            ["infoSubHeader", d.Node],
+                            ["infoEmphasis", "Expected Cost: $" + numberFormat(d.expectedCost)],
+                            ["infoEmphasis", "Likelihood: " + likelihoodPresentationScale(Math.log(1/d.likelihood))],
+                            ["infoEmphasis", "Variability: " + numberFormat(d.outwardVariability/d.inwardVariability)],
+                            ["infoNormal", "Average Cost: $" + numberFormat(d.averageCost)]
+                        ]
+                        var headerColor = color(d.Specialty);
+                        pushDetails(content, headerColor);
+                        hoverHighlight(d3.select(this));
+                    })
+                    .on("mousedown", function(d){
+                        var nodeName = d.Node;
+                        var nodeSpecialty = d.Specialty;
+                        var content  = [
+                            ["infoHeader", d.Specialty],
+                            ["infoSubHeader", d.Node],
+                            ["infoEmphasis", "Expected Cost: $" + numberFormat(d.expectedCost)],
+                            ["infoEmphasis", "Likelihood: " + likelihoodPresentationScale(Math.log(1/d.likelihood))],
+                            ["infoEmphasis", "Variability: " + numberFormat(d.outwardVariability/d.inwardVariability)],
+                            ["infoNormal", "Average Cost: $" + numberFormat(d.averageCost)]
+                        ]
+                        var headerColor = color(d.Specialty);
+                        interact(d3.select(this), nodeName, nodeSpecialty, content, headerColor);
+                    })
+                    .call(force.drag);
+
+
+            var labels = gnodes
+                    .append("text")
+                    .text(function(d) {return d.Node;})
+                    .attr("class", "bubbleLabels")
+                    .style("fill", function(d) {
+                        if(d.Node == "You") {
+                            return "Black"
+                        }
+                        else {
+                            return color(d.Specialty);
+                        }
+                    })
+                    .style("visibility", "hidden");
+
+            node.append("title")
+                    .text(function(d) { return d.name; });
+            likelihoodScale
+                    .domain([d3.min(linkStructured, function(d){return Math.log(1/d.value);})
+                        , d3.max(linkStructured, function(d){return Math.log(1/d.value);})]);
+            likelihoodPresentationScale
+                    .domain([d3.min(linkStructured, function(d){return Math.log(1/d.value);})
+                        , d3.max(linkStructured, function(d){return Math.log(1/d.value);})]);
+
+
+            force.on("tick", function() {
+                link.attr("x1", function(d) { return d.source.x; })
+                        .attr("y1", function(d) { return d.source.y; })
+                        .attr("x2", function(d) { return d.target.x; })
+                        .attr("y2", function(d) { return d.target.y; });
+
+                gnodes.attr("transform", function(d) {
+                    return 'translate(' + [d.x, d.y] + ')';
+                });
+
+
+            });
+
+            force
+                    .nodes(nodeFiltered)
+                    .links(linkStructured)
+                    .start();
+        }
+
+        function buildElements() {
+            costScale
+                    .range([0, Math.pow(maxRadius, 2)*Math.PI])
+                    .domain([d3.min(nodeFiltered, function(d){return d.averageCost;})
+                        , d3.max(nodeFiltered, function(d){return d.averageCost;})]);
+        }
+
+        function initialize() {
+            buildElements();
+            getLinks();
+            setTimeout(function() {
+                        nodeFiltered = nodeFiltered.filter(function(d){return d.nodeType !=  "Detail";});
+                        svg.selectAll("g.gnode").remove();
+                        svg.selectAll(".link").remove();
+                        svg.selectAll(".node").remove();
+                        getLinks();
+                    }
+            , 4000);
+        }
+
+        function pushDetails(content, headerColor) {
+            $("#info").html("");
+            for(var i=0; i < content.length; i++) {
+                var infoTxt = "<span class='" + content[i][0]+ "'";
+                if(content[i][0] == "infoHeader") {infoTxt = infoTxt + " style='color:"+headerColor+"'"};
+                infoTxt = infoTxt + ">" + content[i][1] + "</span><br/>"
+                $("#info").append( infoTxt );
+            }
+        }
+
+        function removeSvgElements() {
+            svg.selectAll("g.gnode").remove();
+            svg.selectAll(".link").remove();
+            svg.selectAll(".node").remove();
+        }
+
+        function interact(element, nodeName, Specialty, content, headerColor){
+            pushDetails(content, headerColor);
+            removeSvgElements();
+            var linkTemp = linkFiltered.filter(function(d){return d.source ==  nodeName && d.Specialty == Specialty;});
+            var nodeTemp = 0;
+            for(var i=0; i < linkTemp.length; i++) {
+                nodeTemp = nodeFiltered.filter(
+                        function(d){return d.Node == linkTemp[i].target
+                                && d.Specialty == linkTemp[i].Specialty;}
+                );
+                nodeFiltered = nodeFiltered.filter(
+                        function(d){return d.Node != linkTemp[i].target
+                                || d.Specialty != linkTemp[i].Specialty;}
+                );
+            }
+            if(nodeTemp.length == 0) {
+                for(var j=0; j < linkTemp.length; j++) {
+                    var nodeAugmentSegment = graph.nodes.filter(
+                            function(d){return d.Node == linkTemp[j].target
+                                    && d.Specialty == linkTemp[j].Specialty;}
+                    );
+                    nodeFiltered.push(nodeAugmentSegment[0]);
+                }
+            }
+            getLinks();
+            showHideText();
+        };
+
+    });
+
+</script>
+<div id="info"></div>
+</body>

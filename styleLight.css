@@ -1,0 +1,34 @@
+
+.node {
+    mix-blend-mode: multiply;
+}
+.selectedNode {
+    mix-blend-mode: multiply;
+}
+
+
+body {
+    color: #a4a4a4;
+    background-color: #FFFFFF;
+}
+
+.infoHeader {
+    font-weight: 900;
+}
+.infoSubHeader {
+    font-weight: 900;
+}
+.infoEmphasis {
+    font-weight: 900;
+}
+.bubbleLabels {
+    mix-blend-mode: multiply;
+}
+
+#info {
+    mix-blend-mode: multiply;
+}
+
+a {
+    color: #000000;
+}

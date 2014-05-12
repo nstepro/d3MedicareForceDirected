@@ -1,0 +1,94 @@
+.node {
+    opacity: .8;
+    cursor: hand;
+}
+.selectedNode {
+    opacity: 1;
+}
+
+.link {
+    stroke: #bdbdbd;
+    stroke-opacity: .6;
+}
+
+body {
+    font-family: "Source Sans Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 2em;
+    cursor: default;
+}
+a {
+    text-decoration: none;
+    opacity: .7;
+}
+a:hover {
+    color: #008ecc;
+}
+
+.infoHeader {
+    font-size: 3em;
+    font-weight: 800;
+    opacity: .9;
+}
+.infoSubHeader {
+    font-size: 2em;
+    font-weight: 800;
+}
+.infoEmphasis {
+    font-weight: 800;
+}
+.infoNormal {
+    font-weight: 300;
+    opacity: .7;
+}
+
+.bubbleLabels {
+    font-weight: 800;
+    font-size: 0.12em;
+    opacity: .9;
+}
+
+#info {
+    position:absolute;
+    top: 0;
+    z-index: 10;
+}
+
+svg {
+    z-index: 100;
+    position: relative;
+}
+
+#toggleText {
+    text-align: right;
+    position:absolute;
+    top: 0;
+    width: 100%;
+    z-index: 9999;
+    margin-top: 10px;
+    padding-right: 30px;
+}
+
+#backgroundPulse {
+    text-align: right;
+    position:absolute;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    cursor: hand;
+}
+
+#modalInfo {
+    background-color: rgba(255,255,255,.7);
+    position:absolute;
+    top: 25%;
+    left: 25%;
+    width: 50%;
+    height: 50%;
+    z-index: 9999;
+    border: solid whitesmoke 1px;
+}
+
+.toggleText {
+    margin-right: 10px;
+}
